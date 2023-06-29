@@ -17,7 +17,7 @@
 (@v1.X) pkg> test DistributedHyperOpt
 ```
 
-4\. See the testing scripts for examples.
+4\. See the folder `examples` (or testing scripts) for examples.
 
 ## What is currently supported in DistributedHyperOpt.jl?
 
