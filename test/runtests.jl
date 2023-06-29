@@ -20,7 +20,7 @@ addprocs(3)
 @everywhere function f(minimizer, ressource, ind)
     a, b, c = minimizer
     sleep((rand() + myid()) * 0.1)
-    return a*a + sqrt(abs(b)) - c/10.0
+    return a*a + sqrt(abs(b)) - min(0.0, c/10.0)
 end
 
 @testset "RandomSampler" begin

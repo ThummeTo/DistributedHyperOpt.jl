@@ -58,7 +58,7 @@ function Base.rand(p::Parameter)
     if p.type == :Linear 
         return rand(LinRange(p.values[1], p.values[2], p.samples))
     elseif p.type == :Log 
-        return rand(exp10.(LinRange(p.values[1], p.values[2], p.samples)))
+        return rand(exp10.(LinRange(log10(p.values[1]), log10(p.values[2]), p.samples)))
     elseif p.type == :Discrete 
         return rand(p.values)
     else 
