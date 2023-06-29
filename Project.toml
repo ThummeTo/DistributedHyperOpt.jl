@@ -1,0 +1,8 @@
+name = "DistributedHyperOpt"
+uuid = "1357e76c-d10a-422c-93ff-d9e6c46daa71"
+authors = ["TT <tobias.thummerer@informatik.uni-augsburg.de>"]
+version = "0.1.0"
+
+[deps]
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+Requires = "ae029012-a4dd-5104-9daa-d747884805df"
