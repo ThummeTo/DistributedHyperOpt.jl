@@ -6,7 +6,7 @@
 sampler = DistributedHyperOpt.RandomSampler()
 optimization = DistributedHyperOpt.Optimization(f, 
                                                 DistributedHyperOpt.Parameter("a", (1.0,3.0)), 
-                                                DistributedHyperOpt.Parameter("b", [4.0, 5.0, 6.0]), 
+                                                DistributedHyperOpt.Parameter("b", [0.9, 0.99, 0.999]), 
                                                 DistributedHyperOpt.Parameter("c", (1.0, 100.0); type=:Log, samples=3, round_digits=1))
 DistributedHyperOpt.optimize(optimization; sampler=sampler, max_iters=10)
 DistributedHyperOpt.optimize(optimization; sampler=sampler, max_iters=10, plot=true)
