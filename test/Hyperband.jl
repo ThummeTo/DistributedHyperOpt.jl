@@ -4,9 +4,9 @@
 
 sampler = DistributedHyperOpt.Hyperband(;R=30, η=3, ressourceScale=1.0/30.0)
 optimization = DistributedHyperOpt.Optimization(f, 
-                                             DistributedHyperOpt.Parameter("a", :Linear, (1.0,3.0)), 
-                                             DistributedHyperOpt.Parameter("b", :Discrete, [4.0, 5.0, 6.0]), 
-                                             DistributedHyperOpt.Parameter("c", :Log, (1.0, 100.0); samples=3))
+                                             DistributedHyperOpt.Parameter("a", (1.0,3.0)), 
+                                             DistributedHyperOpt.Parameter("b", [4.0, 5.0, 6.0]), 
+                                             DistributedHyperOpt.Parameter("c", (1.0, 100.0); type=:Log, samples=3, round_digits=1))
 DistributedHyperOpt.optimize(optimization; sampler=sampler)
 @info "Found minimum $(optimization.minimum) for minimizer $(optimization.minimizer)."
 @test optimization.minimum < 5.0
