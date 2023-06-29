@@ -8,11 +8,18 @@ function Plots.plot(optimization::Optimization, args...; kwargs...)
 
     pl = 1
     for p in optimization.parameters
+
+        vals = collect(h[pl] for h in optimization.minimizers)
+
         plot_kwargs = Dict{Symbol, Any}()
         if p.type == :Log     
+            # if :Log, activate log-axis
             plot_kwargs[:xaxis] = :log
+        elseif p.type == :Discrete 
+            # if :Discrete, convert numbers (if any) to strings for equidistant plotting
+            vals = collect("$(val)" for val in vals)
         end
-        Plots.scatter!(fig[pl], collect(h[pl] for h in optimization.minimizers), optimization.minimums; xlabel=p.name, legend=:none, yaxis=:log, plot_kwargs...)
+        Plots.scatter!(fig[pl], vals, optimization.minimums; xlabel=p.name, legend=:none, yaxis=:log, plot_kwargs...)
         pl += 1
     end
 

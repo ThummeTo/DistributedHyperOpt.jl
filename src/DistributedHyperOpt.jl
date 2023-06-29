@@ -33,37 +33,49 @@ function redirect_printing(logfile, fun, args...; kwargs...)
 end
 
 # a Hyperparameter definition
-mutable struct Parameter 
+struct Parameter 
     name::String 
     type::Symbol 
 
     values::Union{Tuple{Any, Any}, AbstractArray{<:Any, 1}}
     samples::Int
-    grid::AbstractArray{<:Any, 1}
+    round_digits::Union{Nothing, Int}
 
-    function Parameter(name::String, type::Symbol, values::Union{Tuple{Any, Any}, AbstractArray{<:Any, 1}}; samples::Int=100)
+    function Parameter(name::String, values::Union{Tuple{Any, Any}, AbstractArray{<:Any, 1}}; type::Symbol=:Auto, samples::Int=100, round_digits::Union{Nothing, Int}=nothing)
+        if type == :Auto 
+            if isa(values, Tuple{Any, Any})
+                type = :Linear 
+            elseif isa(values, AbstractArray{<:Any, 1})
+                type = :Discrete 
+            end
+        end
+        @assert !isa(values, AbstractArray{<:Any, 1}) || type == :Discrete "Field `values` is given a array of values, but type is not `:Discrete`. Please change type to `:Discrete` when using arrays of parameter values."
         @assert type ∈ [:Linear, :Log, :Discrete] "Type must be one of [:Linear, :Log, :Discrete]."
-        inst = new()
-        inst.name = name
-        inst.type = type 
-        inst.values = values 
-        inst.samples = samples
-        return inst
+        @assert isnothing(round_digits) || type != :Discrete "Keyword `round_digits` not supported for parameters of type `:Discrete`. Please remove  keyword or change type."
+        return new(name, type, values, samples, round_digits)
     end
 end
 
 # extend `rand` for type `Parameter`
 import Base.rand 
 function Base.rand(p::Parameter)
+    val = nothing
+
     if p.type == :Linear 
-        return rand(LinRange(p.values[1], p.values[2], p.samples))
+        val = rand(LinRange(p.values[1], p.values[2], p.samples))
     elseif p.type == :Log 
-        return rand(exp10.(LinRange(p.values[1], p.values[2], p.samples)))
+        val = rand(exp10.(LinRange(log10(p.values[1]), log10(p.values[2]), p.samples)))
     elseif p.type == :Discrete 
-        return rand(p.values)
+        val = rand(p.values)
     else 
-        @assert false, "Unknown type ..."
+        @assert false, "Unknown type `$(p.type)`."
     end
+
+    if !isnothing(p.round_digits)
+        val = round(val; digits=p.round_digits)
+    end
+    
+    return val
 end
 
 # an Optimization + results object
