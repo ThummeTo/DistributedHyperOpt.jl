@@ -141,6 +141,7 @@ function optimize(optimization::Optimization;
                   workers::AbstractArray{Int64, 1}=workers(), 
                   print::Bool=true, 
                   plot::Bool=false, 
+                  plot_ressources::Bool=false,
                   save_plot::Union{Nothing, String}=nothing,
                   redirect_worker_io_dir::Union{Nothing, String}=nothing,
                   loop_sleep::Real=0.1,
@@ -232,7 +233,7 @@ function optimize(optimization::Optimization;
                             end
 
                             if plot
-                                fig = DistributedHyperOpt.plot(optimization)
+                                fig = DistributedHyperOpt.plot(optimization; ressources=plot_ressources)
                                 display(fig)
 
                                 if !isnothing(save_plot)
@@ -258,18 +259,29 @@ function optimize(optimization::Optimization;
 end
 
 # fetch optimization results
-function results(optimization::Optimization)
-    minIndex = 1 
-    for i in 1:length(optimization.minimizers)
-        if optimization.minimums[i] < optimization.minimums[minIndex] 
-            minIndex = i 
+function results(optimization::Optimization; update::Bool=false)
+    if update
+        minIndex = 1 
+        for i in 2:length(optimization.minimizers)
+            if optimization.minimums[i] < optimization.minimums[minIndex] 
+                minIndex = i 
+            end
         end
+        
+        optimization.minimum   = optimization.minimums[minIndex]
+        optimization.minimizer = optimization.minimizers[minIndex]
+        optimization.ressource = optimization.ressources[minIndex]
     end
-    return optimization.minimums[minIndex], optimization.minimizers[minIndex], optimization.ressources[minIndex]
+
+    return optimization.minimum, optimization.minimizer, optimization.ressource
 end
 
 function plot(optimization::Optimization, args...; kwargs...)
-    @warn "No plot interface loaded. Do `using Plots` to allow for plotting."
+    @warn "No plot interface loaded. Do `using Plots` to allow for plots."
+end
+
+function scatter(optimization::Optimization, args...; kwargs...)
+    @warn "No plot interface loaded. Do `using Plots` to allow for scatter plots."
 end
 
 function savefig(args...; kwargs...)
