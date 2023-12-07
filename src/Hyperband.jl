@@ -44,7 +44,7 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
         inst.s = inst.s_max
         inst.B = (inst.s_max+1)*R
 
-        @info "Hyperband with R=$(inst.R), η=$(inst.η), s_max=$(inst.s_max), B=$(inst.B) will allocate ressources up to $(ressourceScale*R)"
+        @info "Hyperband with R=$(inst.R), η=$(inst.η), s_max=$(inst.s_max), B=$(inst.B) will allocate ressources up to $(ressourceScale*R) and can be parallized for up to $(inst.s_max+1) worker(s)."
 
         inst.sampler = sampler 
         inst.ressourceScale = ressourceScale
