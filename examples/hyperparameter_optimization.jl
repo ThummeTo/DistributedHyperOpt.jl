@@ -11,7 +11,7 @@ using DistributedHyperOpt.Distributed
 # if you need debugging messages enabled, uncomment:
 # ENV["JULIA_DEBUG"] = "DistributedHyperOpt"
 
-# you could use up to 5 processes if you have enough cores and RAM
+# you could use up to 5 processes (=number of hyperband brackets) for this demo application if you have enough cores and RAM
 workers = addprocs(3) 
 @everywhere include(joinpath(@__DIR__, "hyperparameter_module.jl"))
 

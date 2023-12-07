@@ -10,7 +10,7 @@ function Plots.plot(optimization::Optimization, args...; ressources::Bool=false,
     return Plots.scatter(optimization, args...; ressources=ressources, yaxis=yaxis, kwargs...)
 end
 
-function Plots.scatter(optimization::Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, kwargs...)
+function Plots.scatter(optimization::Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, label_length::Int=12, kwargs...)
 
     numPlots = length(optimization.parameters)
     if ressources
@@ -24,14 +24,15 @@ function Plots.scatter(optimization::Optimization, args...; ressources::Bool=fal
 
         vals = collect(h[pl] for h in optimization.minimizers)
 
-        plot_kwargs = Dict{Symbol, Symbol}()
+        plot_kwargs = Dict{Symbol, Union{Symbol, Integer}}()
         plot_kwargs[:yaxis] = yaxis
         if p.type == :Log     
             # if :Log, activate log-axis
             plot_kwargs[:xaxis] = :log
         elseif p.type == :Discrete 
             # if :Discrete, convert numbers (if any) to strings for equidistant plotting
-            vals = collect("$(val)" for val in vals)
+            plot_kwargs[:xrotation] = 90
+            vals = collect(length("$(val)") <= label_length ? "$(val)" : "$(val)"[1:label_length] * "..." for val in vals)
         end
         Plots.scatter!(fig[pl], vals, optimization.minimums; xlabel=p.name, legend=:none, plot_kwargs...)
         pl += 1
