@@ -229,7 +229,9 @@ function optimize(optimization::Optimization;
                         minimum = nothing 
                         test = nothing 
 
-                        if length(ret) == 1
+                        if isnothing(ret)
+                            minimum = ret
+                        elseif length(ret) == 1
                             minimum = ret[1] # or `minimum = ret` 
                         elseif length(ret) == 2
                             minimum, test = ret 
