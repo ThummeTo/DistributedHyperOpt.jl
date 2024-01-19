@@ -11,22 +11,30 @@ using Requires
 # redirects all process i/o to file (so the REPL is not spamed)
 function redirect_printing(logfile, fun, args...; kwargs...)
     ret = nothing
+    exception = nothing
     pid = myid()
 
     @debug "Opening log file @ `$(logfile)` for process #$(pid)"
     
-        open(logfile, "w") do io
+    open(logfile, "w") do io
         redirect_stdout(io) do
             redirect_stderr(io) do
+
+                println("----- redirecting worker stdout/stderr to file -----")
 
                 try
                     ret = fun(args...; kwargs...)
                 catch e 
-                    @error e 
+                    exception = e
+                    println(exception)
                 end
     
             end
         end
+    end
+
+    if !isnothing(exception)
+        @error "Logging for file `$(logfile)` failed with exception: $(exception)"
     end
 
     return ret
@@ -82,6 +90,8 @@ end
 mutable struct Optimization 
     minimizers::AbstractArray{<:AbstractArray{Any, 1}, 1}
     minimums::AbstractArray{<:Real, 1}
+    
+    tests::AbstractArray{<:Real, 1}
     ressources::AbstractArray{<:Real, 1}
 
     fun    
@@ -95,6 +105,7 @@ mutable struct Optimization
         inst = new()
         inst.minimizers = Array{Array{Any, 1}, 1}()
         inst.minimums = Array{Real, 1}()
+        inst.tests = Array{Real, 1}()
         inst.ressources = Array{Real, 1}()
 
         inst.minimizer = nothing 
@@ -141,6 +152,7 @@ function optimize(optimization::Optimization;
                   workers::AbstractArray{Int64, 1}=workers(), 
                   print::Bool=true, 
                   plot::Bool=false, 
+                  plot_ressources::Bool=false,
                   save_plot::Union{Nothing, String}=nothing,
                   redirect_worker_io_dir::Union{Nothing, String}=nothing,
                   loop_sleep::Real=0.1,
@@ -150,29 +162,48 @@ function optimize(optimization::Optimization;
     nw = length(workers)
     i = 0
 
-    start = true # to enter the loop
     terminate = collect(false for i in 1:nw) # to exit the loop
 
     # define a RemoteChannel and Minimizer for every worker
     process_channel = collect(RemoteChannel() for i in 1:nw)
     process_minimizer = Array{Union{Array{Any, 1}, Nothing}, 1}(nothing, nw)
     process_ressource = collect(Inf for i in 1:nw)
+    process_iteration = zeros(Int, nw)
 
+    # initial loss 
+    # ret = optimization.fun(minimizer, 0.0, 0)
+    # initialMinimum = nothing 
+    # initialTest = nothing 
+    # if isnothing(ret)
+    #     minimum = ret
+    # elseif length(ret) == 1
+    #     minimum = ret[1] # or `minimum = ret` 
+    # elseif length(ret) == 2
+    #     minimum, test = ret 
+    # else
+    #     @assert false "Optimization process returned $(length(ret)) elements, supported is 1 (minimum) or 2 (minimum+test), returned: `$(ret)` on first step."
+    # end
+    
     start_time = time()
 
     try
-        # a slong there are runs left OR runs not finished yet ...
-        while start || (!all(terminate) || !all(isnothing.(process_minimizer)))
-            start = false
 
-            if max_iters_reached(i,max_iters)
-                terminate = collect(true for i in 1:nw)
-                @debug "Optimization: Termination requested by iteration count (max_iters=$(max_iters))"
-            end
+        all_terminate = false
+        processes_running = true
 
-            if max_duration_reached(start_time, max_duration)
-                terminate = collect(true for i in 1:nw)
-                @debug "Optimization: Termination requested by running duration (max_duration=$(max_duration)s)"
+        # as long there are runs left OR runs not finished yet ...
+        while !all_terminate || processes_running
+            
+            if !all_terminate
+                if max_iters_reached(i,max_iters)
+                    terminate = collect(true for i in 1:nw)
+                    @debug "Optimization: Termination requested by iteration count (max_iters=$(max_iters))"
+                end
+
+                if max_duration_reached(start_time, max_duration)
+                    terminate = collect(true for i in 1:nw)
+                    @debug "Optimization: Termination requested by running duration (max_duration=$(max_duration)s)"
+                end
             end
 
             for w in 1:nw
@@ -189,8 +220,12 @@ function optimize(optimization::Optimization;
 
                     i += 1
 
+                    process_iteration[w] = i
+                    process_minimizer[w] = minimizer
+                    process_ressource[w] = ressource
+
                     if print
-                        @info "Starting iteration $(i)/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and ressource $(ressource) ..."
+                        @info "Starting iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and ressource $(ressource) ..."
                     end
 
                     if !isnothing(redirect_worker_io_dir)
@@ -199,26 +234,46 @@ function optimize(optimization::Optimization;
                     else
                         @async put!(process_channel[w], remotecall_fetch(optimization.fun, workers[w], minimizer, ressource, i))  
                     end 
-                    process_minimizer[w] = minimizer
-                    process_ressource[w] = ressource
+                    
 
                 else # something running on that process ...
             
                     if isready(process_channel[w])
-                        minimum = take!(process_channel[w])
+                        ret = take!(process_channel[w])
+
+                        minimum = nothing 
+                        test = nothing 
+
+                        if isnothing(ret)
+                            minimum = ret
+                        elseif length(ret) == 1
+                            minimum = ret[1] # or `minimum = ret` 
+                        elseif length(ret) == 2
+                            minimum, test = ret 
+                        else
+                            @assert false "Optimization process returned $(length(ret)) elements, supported is 1 (minimum) or 2 (minimum+test), returned: `$(ret)`"
+                        end
+
                         minimizer = process_minimizer[w]
                         ressource = process_ressource[w]
 
                         if isnothing(minimum)
-                            @error "Finished iteration $(length(optimization.minimums))/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) but no minimum was detected (objective returned nothing)." 
+                            @error "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) but no minimum was detected (objective returned nothing)." 
                         else
                             push!(optimization.minimums, minimum)
                             push!(optimization.minimizers, minimizer)
                             push!(optimization.ressources, ressource)
+
+                            if isnothing(test)
+                                push!(optimization.tests, 0.0)
+                            else
+                                push!(optimization.tests, test)
+                            end
+
                             evaluated!(sampler, minimizer, minimum, w)
 
                             if print
-                                @info "Finished iteration $(length(optimization.minimums))/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and minimum $(minimum)"
+                                @info "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and minimum $(minimum) ($(test) on testing)."
                             end
 
                             if minimum < optimization.minimum # we found a better solution!
@@ -227,12 +282,12 @@ function optimize(optimization::Optimization;
                                 optimization.ressource = ressource
 
                                 if print
-                                    @info "\tNew minimum $(minimum) for minimizer $(minimizer) with ressource $(ressource)."
+                                    @info "\tNew minimum $(minimum) ($(test) on testing) at iteration $(process_iteration[w])/$(max_iters) for minimizer $(minimizer) with ressource $(ressource)."
                                 end
                             end
 
                             if plot
-                                fig = DistributedHyperOpt.plot(optimization)
+                                fig = DistributedHyperOpt.plot(optimization; ressources=plot_ressources)
                                 display(fig)
 
                                 if !isnothing(save_plot)
@@ -246,6 +301,9 @@ function optimize(optimization::Optimization;
                 end
             end
 
+            all_terminate = all(terminate)
+            processes_running = !all(isnothing.(process_minimizer))
+
             if loop_sleep > 0.0
                 sleep(loop_sleep)
             end
@@ -258,18 +316,29 @@ function optimize(optimization::Optimization;
 end
 
 # fetch optimization results
-function results(optimization::Optimization)
-    minIndex = 1 
-    for i in 1:length(optimization.minimizers)
-        if optimization.minimums[i] < optimization.minimums[minIndex] 
-            minIndex = i 
+function results(optimization::Optimization; update::Bool=false)
+    if update
+        minIndex = 1 
+        for i in 2:length(optimization.minimizers)
+            if optimization.minimums[i] < optimization.minimums[minIndex] 
+                minIndex = i 
+            end
         end
+        
+        optimization.minimum   = optimization.minimums[minIndex]
+        optimization.minimizer = optimization.minimizers[minIndex]
+        optimization.ressource = optimization.ressources[minIndex]
     end
-    return optimization.minimums[minIndex], optimization.minimizers[minIndex], optimization.ressources[minIndex]
+
+    return optimization.minimum, optimization.minimizer, optimization.ressource
 end
 
 function plot(optimization::Optimization, args...; kwargs...)
-    @warn "No plot interface loaded. Do `using Plots` to allow for plotting."
+    @warn "No plot interface loaded. Do `using Plots` to allow for plots."
+end
+
+function scatter(optimization::Optimization, args...; kwargs...)
+    @warn "No plot interface loaded. Do `using Plots` to allow for scatter plots."
 end
 
 function savefig(args...; kwargs...)
