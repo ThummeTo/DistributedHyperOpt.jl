@@ -170,11 +170,26 @@ function optimize(optimization::Optimization;
     process_ressource = collect(Inf for i in 1:nw)
     process_iteration = zeros(Int, nw)
 
+    # initial loss 
+    # ret = optimization.fun(minimizer, 0.0, 0)
+    # initialMinimum = nothing 
+    # initialTest = nothing 
+    # if isnothing(ret)
+    #     minimum = ret
+    # elseif length(ret) == 1
+    #     minimum = ret[1] # or `minimum = ret` 
+    # elseif length(ret) == 2
+    #     minimum, test = ret 
+    # else
+    #     @assert false "Optimization process returned $(length(ret)) elements, supported is 1 (minimum) or 2 (minimum+test), returned: `$(ret)` on first step."
+    # end
+    
     start_time = time()
 
     try
-        all_terminate = all(terminate)
-        processes_running = !all(isnothing.(process_minimizer))
+
+        all_terminate = false
+        processes_running = true
 
         # as long there are runs left OR runs not finished yet ...
         while !all_terminate || processes_running
@@ -285,6 +300,9 @@ function optimize(optimization::Optimization;
                     end # isready
                 end
             end
+
+            all_terminate = all(terminate)
+            processes_running = !all(isnothing.(process_minimizer))
 
             if loop_sleep > 0.0
                 sleep(loop_sleep)
