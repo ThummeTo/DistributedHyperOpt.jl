@@ -17,7 +17,16 @@ function Plots.scatter(optimization::Optimization, args...; ressources::Bool=fal
         numPlots += 1
     end
 
-    fig = Plots.plot(args...; size=(720,560), layout=numPlots, kwargs...)
+    minIndex = 0
+    for i in 1:length(optimization.minimums)
+        if optimization.minimums[i] == optimization.minimum 
+            minIndex = i 
+            break
+        end
+    end
+
+    titleStr = "Min: $(optimization.minimum) | Index: $(minIndex)\n$(optimization.minimizer)"
+    fig = Plots.plot(args...; size=(720,560), layout=numPlots, title=titleStr, kwargs...)
 
     pl = 1
     for p in optimization.parameters
@@ -26,10 +35,10 @@ function Plots.scatter(optimization::Optimization, args...; ressources::Bool=fal
 
         plot_kwargs = Dict{Symbol, Union{Symbol, Integer}}()
         plot_kwargs[:yaxis] = yaxis
-        if p.type == :Log     
+        if p.type == :Log
             # if :Log, activate log-axis
             plot_kwargs[:xaxis] = :log
-        elseif p.type == :Discrete 
+        elseif p.type == :Discrete
             # if :Discrete, convert numbers (if any) to strings for equidistant plotting
             plot_kwargs[:xrotation] = 90
             vals = collect(length("$(val)") <= label_length ? "$(val)" : "$(val)"[1:label_length] * "..." for val in vals)
