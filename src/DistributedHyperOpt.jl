@@ -33,9 +33,9 @@ function redirect_printing(logfile, fun, args...; kwargs...)
         end
     end
 
-    if !isnothing(exception)
-        @error "Logging for file `$(logfile)` failed with exception: $(exception)"
-    end
+    # if !isnothing(exception)
+    #     @error "Logging for file `$(logfile)` failed with exception: $(exception)"
+    # end
 
     return ret
 end
