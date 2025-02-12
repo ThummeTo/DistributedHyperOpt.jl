@@ -26,7 +26,7 @@ function Plots.scatter(optimization::Optimization, args...; ressources::Bool=fal
     end
 
     titleStr = "Min: $(optimization.minimum) | Index: $(minIndex)\n$(optimization.minimizer)"
-    fig = Plots.plot(args...; size=(720,720), layout=numPlots, plot_title=titleStr, plot_titlevspan=0.15, kwargs...)
+    fig = Plots.plot(args...; size=(720,720), layout=numPlots, plot_title=titleStr, plot_titlevspan=0.1, plot_titlefontsize=12, kwargs...)
 
     pl = 1
     for p in optimization.parameters

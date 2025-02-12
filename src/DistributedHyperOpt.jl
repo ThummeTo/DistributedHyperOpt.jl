@@ -230,9 +230,9 @@ function optimize(optimization::Optimization;
 
                     if !isnothing(redirect_worker_io_dir)
                         logfile = joinpath(redirect_worker_io_dir, "process$(w).txt")
-                        @async put!(process_channel[w], remotecall_fetch(redirect_printing, workers[w], logfile, optimization.fun, minimizer, ressource, i))  
+                        @async put!(process_channel[w], remotecall_fetch(redirect_printing, workers[w], logfile, optimization.fun, minimizer, ressource, process_iteration[w]))  
                     else
-                        @async put!(process_channel[w], remotecall_fetch(optimization.fun, workers[w], minimizer, ressource, i))  
+                        @async put!(process_channel[w], remotecall_fetch(optimization.fun, workers[w], minimizer, ressource, process_iteration[w]))  
                     end 
                     
 
