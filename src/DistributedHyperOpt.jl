@@ -259,6 +259,7 @@ function optimize(optimization::Optimization;
 
                         if isnothing(minimum)
                             @error "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) but no minimum was detected (objective returned nothing)." 
+                            minimum = Inf
                         else
                             push!(optimization.minimums, minimum)
                             push!(optimization.minimizers, minimizer)
@@ -269,25 +270,6 @@ function optimize(optimization::Optimization;
                             else
                                 push!(optimization.tests, test)
                             end
-
-                            if minimum < optimization.minimum # we found a better solution!
-                                optimization.minimum = minimum
-                                optimization.minimizer = minimizer
-                                optimization.ressource = ressource
-
-                                if print
-                                    @info "\tNew minimum $(minimum) ($(test) on testing) at iteration $(process_iteration[w])/$(max_iters) for minimizer $(minimizer) with ressource $(ressource)."
-                                end
-                            end
-
-                            if plot
-                                fig = DistributedHyperOpt.plot(optimization; ressources=plot_ressources)
-                                display(fig)
-
-                                if !isnothing(save_plot)
-                                    DistributedHyperOpt.savefig(fig, save_plot)
-                                end
-                            end
                         end
 
                         evaluated!(sampler, minimizer, minimum, w)
@@ -296,8 +278,27 @@ function optimize(optimization::Optimization;
                             @info "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and minimum $(minimum) ($(test) on testing)."
                         end
 
+                        if minimum < optimization.minimum # we found a better solution!
+                            optimization.minimum = minimum
+                            optimization.minimizer = minimizer
+                            optimization.ressource = ressource
+
+                            if print
+                                @info "\tNew minimum $(minimum) ($(test) on testing) at iteration $(process_iteration[w])/$(max_iters) for minimizer $(minimizer) with ressource $(ressource)."
+                            end
+                        end
+
+                        if plot
+                            fig = DistributedHyperOpt.plot(optimization; ressources=plot_ressources)
+                            display(fig)
+
+                            if !isnothing(save_plot)
+                                DistributedHyperOpt.savefig(fig, save_plot)
+                            end
+                        end
+
                         process_minimizer[w] = nothing
-                        
+
                     end # isready
                 end
             end
