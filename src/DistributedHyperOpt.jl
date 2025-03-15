@@ -270,12 +270,6 @@ function optimize(optimization::Optimization;
                                 push!(optimization.tests, test)
                             end
 
-                            evaluated!(sampler, minimizer, minimum, w)
-
-                            if print
-                                @info "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and minimum $(minimum) ($(test) on testing)."
-                            end
-
                             if minimum < optimization.minimum # we found a better solution!
                                 optimization.minimum = minimum
                                 optimization.minimizer = minimizer
@@ -296,7 +290,14 @@ function optimize(optimization::Optimization;
                             end
                         end
 
+                        evaluated!(sampler, minimizer, minimum, w)
+
+                        if print
+                            @info "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and minimum $(minimum) ($(test) on testing)."
+                        end
+
                         process_minimizer[w] = nothing
+                        
                     end # isready
                 end
             end
