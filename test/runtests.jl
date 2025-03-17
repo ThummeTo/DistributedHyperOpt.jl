@@ -19,7 +19,17 @@ addprocs(3)
 
 @everywhere function f(minimizer, ressource, ind)
     a, b, c = minimizer
+    
     sleep((rand() + myid()) * 0.1)
+
+    if rand(1:10) == 1
+        return nothing 
+    end
+
+    if rand(1:10) == 1
+        return Inf 
+    end
+
     return a*a + sqrt(abs(b)) - min(0.0, c/10.0)
 end
 

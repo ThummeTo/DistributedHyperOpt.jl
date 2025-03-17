@@ -3,14 +3,19 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
-function Plots.plot(optimization::Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, kwargs...)
+module PlotsExt
+
+import DistributedHyperOpt
+import Plots
+
+function Plots.plot(optimization::DistributedHyperOpt.Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, kwargs...)
 
     # ToDo
 
     return Plots.scatter(optimization, args...; ressources=ressources, yaxis=yaxis, kwargs...)
 end
 
-function Plots.scatter(optimization::Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, label_length::Int=12, kwargs...)
+function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, label_length::Int=12, kwargs...)
 
     numPlots = length(optimization.parameters)
     if ressources
@@ -61,14 +66,4 @@ function Plots.scatter(optimization::Optimization, args...; ressources::Bool=fal
     return fig
 end
 
-function plot(optimization::Optimization, args...; kwargs...)
-    Plots.plot(optimization::Optimization, args...; kwargs...)
-end
-
-function scatter(optimization::Optimization, args...; kwargs...)
-    Plots.scatter(optimization::Optimization, args...; kwargs...)
-end
-
-function savefig(args...; kwargs...)
-    Plots.savefig(args...; kwargs...)
-end
+end # PlotsExt

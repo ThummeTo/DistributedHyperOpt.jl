@@ -7,6 +7,7 @@ module DistributedHyperOpt
 
 using Distributed
 using Requires
+using Plots
 
 # redirects all process i/o to file (so the REPL is not spamed)
 function redirect_printing(logfile, fun, args...; kwargs...)
@@ -259,17 +260,17 @@ function optimize(optimization::Optimization;
 
                         if isnothing(minimum)
                             @error "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) but no minimum was detected (objective returned nothing)." 
-                            minimum = Inf
-                        else
-                            push!(optimization.minimums, minimum)
-                            push!(optimization.minimizers, minimizer)
-                            push!(optimization.ressources, ressource)
+                            minimum = Inf    
+                        end
 
-                            if isnothing(test)
-                                push!(optimization.tests, 0.0)
-                            else
-                                push!(optimization.tests, test)
-                            end
+                        push!(optimization.minimums, minimum)
+                        push!(optimization.minimizers, minimizer)
+                        push!(optimization.ressources, ressource)
+
+                        if isnothing(test)
+                            push!(optimization.tests, 0.0)
+                        else
+                            push!(optimization.tests, test)
                         end
 
                         evaluated!(sampler, minimizer, minimum, w)
@@ -289,11 +290,11 @@ function optimize(optimization::Optimization;
                         end
 
                         if plot
-                            fig = DistributedHyperOpt.plot(optimization; ressources=plot_ressources)
+                            fig = Plots.plot(optimization; ressources=plot_ressources)
                             display(fig)
 
                             if !isnothing(save_plot)
-                                DistributedHyperOpt.savefig(fig, save_plot)
+                                Plots.savefig(fig, save_plot)
                             end
                         end
 
@@ -335,29 +336,7 @@ function results(optimization::Optimization; update::Bool=false)
     return optimization.minimum, optimization.minimizer, optimization.ressource
 end
 
-function plot(optimization::Optimization, args...; kwargs...)
-    @warn "No plot interface loaded. Do `using Plots` to allow for plots."
-end
-
-function scatter(optimization::Optimization, args...; kwargs...)
-    @warn "No plot interface loaded. Do `using Plots` to allow for scatter plots."
-end
-
-function savefig(args...; kwargs...)
-    @warn "No plot interface loaded. Do `using Plots` to allow for saving of plots."
-end
-
-function __init__()
-    @require Plots="91a5bcdd-55d7-5caf-9e0b-520d859cae80" begin
-        import .Plots
-        include(joinpath(@__DIR__, "Plots.jl"))
-    end
-    @require JLD2="033835bb-8acc-5ee8-8aae-3f567f8a3819" begin
-        import .JLD2
-        include(joinpath(@__DIR__, "JLD2.jl"))
-    end
-end
-
+include(joinpath(@__DIR__, "..", "ext", "PlotsExt.jl"))
 include(joinpath(@__DIR__, "RandomSampler.jl"))
 include(joinpath(@__DIR__, "Hyperband.jl"))
 
