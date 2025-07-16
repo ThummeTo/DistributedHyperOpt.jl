@@ -3,6 +3,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import JLD2
+
 mutable struct HyperbandBracket 
     n::Int 
     r::Real
@@ -35,8 +37,9 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
     sampler::AbstractOptimizationAlgorithm
     brackets::Dict{Int, Union{HyperbandBracket, Nothing}}
     ressourceScale
+    auto_save_path::String
 
-    function Hyperband(;R::Int=50, η::Int=3, sampler::AbstractOptimizationAlgorithm=RandomSampler(), ressourceScale::Real=1.0)
+    function Hyperband(;R::Int=50, η::Int=3, sampler::AbstractOptimizationAlgorithm=RandomSampler(), ressourceScale::Real=1.0, auto_save_path::String="")
         inst = new()
         inst.R = R
         inst.η = η
@@ -54,6 +57,7 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
         inst.sampler = sampler 
         inst.ressourceScale = ressourceScale
         inst.brackets = Dict{Int, Union{HyperbandBracket, Nothing}}()
+        inst.auto_save_path = auto_save_path
 
         return inst
     end
@@ -99,7 +103,19 @@ function worker_has_bracket(sampler::Hyperband, wid::Int)
     return haskey(sampler.brackets, wid) && !isnothing(sampler.brackets[wid])
 end
 
+function save!(sampler::Hyperband, filepath::String=sampler.auto_save_path)
+    JLD2.save(filepath, Dict("sampler" => sampler))
+end
+
+function load(filepath::String)
+    return JLD2.load(filepath, "sampler")
+end
+
 function sample!(sampler::Hyperband, optimization::Optimization, wid::Int)
+
+    if !isempty(sampler.auto_save_path)
+        save!(sampler, sampler.auto_save_path)
+    end
 
     if all_brackets_started(sampler) && all_brackets_finished(sampler)
         @debug "Hyperband: Finished!"
