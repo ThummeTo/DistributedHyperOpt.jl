@@ -113,10 +113,6 @@ end
 
 function sample!(sampler::Hyperband, optimization::Optimization, wid::Int)
 
-    if !isempty(sampler.auto_save_path)
-        save!(sampler, sampler.auto_save_path)
-    end
-
     if all_brackets_started(sampler) && all_brackets_finished(sampler)
         @debug "Hyperband: Finished!"
         return nothing, 0.0 # we are done!
@@ -180,5 +176,9 @@ function evaluated!(sampler::Hyperband, minimizer, minimum, wid::Int)
             @debug "Hyperband: Bracket s=$(bracket.s) finished by worker #$(wid)"
             sampler.brackets[wid] = nothing
         end
+    end
+
+    if !isempty(sampler.auto_save_path)
+        save!(sampler, sampler.auto_save_path)
     end
 end
