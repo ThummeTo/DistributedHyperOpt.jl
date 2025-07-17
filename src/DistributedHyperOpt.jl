@@ -201,11 +201,13 @@ function optimize(optimization::Optimization;
                 if max_iters_reached(sampler, max_iters)
                     terminate = collect(true for i in 1:nw)
                     @debug "Optimization: Termination requested by iteration count (max_iters=$(max_iters))"
+                    continue
                 end
 
                 if max_duration_reached(start_time, max_duration)
                     terminate = collect(true for i in 1:nw)
                     @debug "Optimization: Termination requested by running duration (max_duration=$(max_duration)s)"
+                    continue
                 end
             end
 
