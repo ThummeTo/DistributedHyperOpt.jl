@@ -101,6 +101,7 @@ mutable struct Optimization
     minimizer
     minimum::Real
     ressource::Real
+    iteration::Integer # best iteration
 
     function Optimization(fun, parameters::Parameter...)
         inst = new()
@@ -116,6 +117,8 @@ mutable struct Optimization
         inst.fun = fun 
         inst.parameters = [parameters...]
 
+        inst.iteration = 0
+
         return inst
     end
 end
@@ -127,16 +130,16 @@ function sample!(sampler::AbstractOptimizationAlgorithm, optimization::Optimizat
     @assert false, "`sample!(sampler, optimization)` is not defined for this AbstractOptimizationAlgorithm, please define a dispatch."
 end
 
-# function being called, if algorithm evaluated a new sample (new loss)
+# function being called, if algorithm evaluated a sample (new loss)
 function evaluated!(sampler::AbstractOptimizationAlgorithm, minimizer, minimum, wid::Int)
     # function optional, it's ok to not overwrite it!
 end
 
-function max_iters_reached(i, max_iters)
+function max_iters_reached(sampler::AbstractOptimizationAlgorithm, max_iters)
     if max_iters == 0
         return false
     else
-        return i >= max_iters
+        return sampler.iteration >= max_iters
     end
 end
 
@@ -161,8 +164,7 @@ function optimize(optimization::Optimization;
                   max_duration::Real=0.0)
 
     nw = length(workers)
-    i = 0
-
+    
     terminate = collect(false for i in 1:nw) # to exit the loop
 
     # define a RemoteChannel and Minimizer for every worker
@@ -196,7 +198,7 @@ function optimize(optimization::Optimization;
         while !all_terminate || processes_running
             
             if !all_terminate
-                if max_iters_reached(i,max_iters)
+                if max_iters_reached(sampler, max_iters)
                     terminate = collect(true for i in 1:nw)
                     @debug "Optimization: Termination requested by iteration count (max_iters=$(max_iters))"
                 end
@@ -219,9 +221,9 @@ function optimize(optimization::Optimization;
                         continue
                     end 
 
-                    i += 1
+                    sampler.iteration += 1
 
-                    process_iteration[w] = i
+                    process_iteration[w] = sampler.iteration
                     process_minimizer[w] = minimizer
                     process_ressource[w] = ressource
 
@@ -280,6 +282,7 @@ function optimize(optimization::Optimization;
                         end
 
                         if minimum < optimization.minimum # we found a better solution!
+                            optimization.iteration = process_iteration[w]
                             optimization.minimum = minimum
                             optimization.minimizer = minimizer
                             optimization.ressource = ressource

@@ -39,6 +39,8 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
     ressourceScale
     auto_save_path::String
 
+    iteration::Integer # current iteration
+
     function Hyperband(;R::Int=50, η::Int=3, sampler::AbstractOptimizationAlgorithm=RandomSampler(), ressourceScale::Real=1.0, auto_save_path::String="")
         inst = new()
         inst.R = R
@@ -58,6 +60,7 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
         inst.ressourceScale = ressourceScale
         inst.brackets = Dict{Int, Union{HyperbandBracket, Nothing}}()
         inst.auto_save_path = auto_save_path
+        inst.iteration = 0
 
         return inst
     end

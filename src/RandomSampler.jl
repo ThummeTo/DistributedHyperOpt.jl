@@ -5,10 +5,12 @@
 
 mutable struct RandomSampler <: AbstractOptimizationAlgorithm 
     ressource::Real 
+    iteration::Integer # current iteration
     
     function RandomSampler(; ressource::Real=0.0)
         inst = new()
         inst.ressource = ressource
+        inst.iteration = 0
         return inst
     end
 end
