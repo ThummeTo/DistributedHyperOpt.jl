@@ -22,15 +22,15 @@ function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; 
         numPlots += 1
     end
 
-    minIndex = 0
-    for i in 1:length(optimization.minimums)
-        if optimization.minimums[i] == optimization.minimum 
-            minIndex = i 
-            break
-        end
-    end
+    # minIndex = 0
+    # for i in 1:length(optimization.minimums)
+    #     if optimization.minimums[i] == optimization.minimum 
+    #         minIndex = i 
+    #         break
+    #     end
+    # end
 
-    titleStr = "Min: $(optimization.minimum) | Index: $(minIndex)\n$(optimization.minimizer)"
+    titleStr = "Min: $(optimization.minimum) | Index: $(optimization.iteration)\n$(optimization.minimizer)"
     fig = Plots.plot(args...; size=(720,720), layout=numPlots, plot_title=titleStr, plot_titlevspan=0.1, plot_titlefontsize=12, kwargs...)
 
     pl = 1
