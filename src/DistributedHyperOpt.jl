@@ -131,7 +131,7 @@ function sample!(sampler::AbstractOptimizationAlgorithm, optimization::Optimizat
 end
 
 # function being called, if algorithm evaluated a sample (new loss)
-function evaluated!(sampler::AbstractOptimizationAlgorithm, minimizer, minimum, wid::Int)
+function evaluated!(sampler::AbstractOptimizationAlgorithm, optimization::Optimization, minimizer, minimum, wid::Int)
     # function optional, it's ok to not overwrite it!
 end
 
@@ -275,7 +275,7 @@ function optimize(optimization::Optimization;
                             push!(optimization.tests, test)
                         end
 
-                        evaluated!(sampler, minimizer, minimum, w)
+                        evaluated!(sampler, optimization, minimizer, minimum, w)
 
                         if print
                             @info "Finished iteration $(process_iteration[w])/$(max_iters) @ worker #$(w) (PID $(workers[w])) with minimizer $(minimizer) and minimum $(minimum) ($(test) on testing)."

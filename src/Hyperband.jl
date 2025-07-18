@@ -106,12 +106,12 @@ function worker_has_bracket(sampler::Hyperband, wid::Int)
     return haskey(sampler.brackets, wid) && !isnothing(sampler.brackets[wid])
 end
 
-function save!(sampler::Hyperband, filepath::String=sampler.auto_save_path)
-    JLD2.save(filepath, Dict("sampler" => sampler))
+function save!(sampler::Hyperband, optimization::Optimization, filepath::String=sampler.auto_save_path)
+    JLD2.save(filepath, Dict("sampler" => sampler, "optimization" => optimization))
 end
 
 function load(filepath::String)
-    return JLD2.load(filepath, "sampler")
+    return JLD2.load(filepath, "sampler"), JLD2.load(filepath, "optimization")
 end
 
 function sample!(sampler::Hyperband, optimization::Optimization, wid::Int)
@@ -155,7 +155,7 @@ function sample!(sampler::Hyperband, optimization::Optimization, wid::Int)
     return bracket.T[l], r_i*sampler.ressourceScale
 end
 
-function evaluated!(sampler::Hyperband, minimizer, minimum, wid::Int)
+function evaluated!(sampler::Hyperband, optimization::Optimization, minimizer, minimum, wid::Int)
     
     bracket = sampler.brackets[wid]
     bracket.L[bracket.l] = minimum
@@ -182,6 +182,6 @@ function evaluated!(sampler::Hyperband, minimizer, minimum, wid::Int)
     end
 
     if !isempty(sampler.auto_save_path)
-        save!(sampler, sampler.auto_save_path)
+        save!(sampler, optimization, sampler.auto_save_path)
     end
 end
