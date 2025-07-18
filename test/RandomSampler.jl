@@ -4,11 +4,10 @@
 #
 
 sampler = DistributedHyperOpt.RandomSampler()
-optimization = DistributedHyperOpt.Optimization(f, 
-                                                DistributedHyperOpt.Parameter("a", (1.0,3.0)), 
+optimization = DistributedHyperOpt.Optimization(DistributedHyperOpt.Parameter("a", (1.0,3.0)), 
                                                 DistributedHyperOpt.Parameter("b", [0.9, 0.99, 0.999]), 
                                                 DistributedHyperOpt.Parameter("c", (1.0, 100.0); type=:Log, samples=3, round_digits=1))
-DistributedHyperOpt.optimize(optimization; sampler=sampler, max_iters=10)
-DistributedHyperOpt.optimize(optimization; sampler=sampler, max_iters=10, plot=true)
+DistributedHyperOpt.optimize(optimization, f; sampler=sampler, max_iters=10)
+DistributedHyperOpt.optimize(optimization, f; sampler=sampler, max_iters=10, plot=true)
 @info "Found minimum $(optimization.minimum) for minimizer $(optimization.minimizer)."
 @test optimization.minimum < 5.0

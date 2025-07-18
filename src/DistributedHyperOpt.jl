@@ -103,7 +103,7 @@ mutable struct Optimization
     ressource::Real
     iteration::Integer # best iteration
 
-    function Optimization(fun, parameters::Parameter...)
+    function Optimization(parameters::Parameter...)
         inst = new()
         inst.minimizers = Array{Array{Any, 1}, 1}()
         inst.minimums = Array{Real, 1}()
@@ -113,8 +113,7 @@ mutable struct Optimization
         inst.minimizer = nothing 
         inst.minimum = Inf
         inst.ressource = Inf
-
-        inst.fun = fun 
+ 
         inst.parameters = [parameters...]
 
         inst.iteration = 0
@@ -151,7 +150,7 @@ function max_duration_reached(start_time::Real, max_duration::Real)
     end
 end
 
-function optimize(optimization::Optimization;
+function optimize(optimization::Optimization, fun;
                   sampler::AbstractOptimizationAlgorithm=RandomSampler(),
                   workers::AbstractArray{Int64, 1}=workers(), 
                   print::Bool=true, 
@@ -233,9 +232,9 @@ function optimize(optimization::Optimization;
 
                     if !isnothing(redirect_worker_io_dir)
                         logfile = joinpath(redirect_worker_io_dir, "process$(w).txt")
-                        @async put!(process_channel[w], remotecall_fetch(redirect_printing, workers[w], logfile, optimization.fun, minimizer, ressource, process_iteration[w]))  
+                        @async put!(process_channel[w], remotecall_fetch(redirect_printing, workers[w], logfile, fun, minimizer, ressource, process_iteration[w]))  
                     else
-                        @async put!(process_channel[w], remotecall_fetch(optimization.fun, workers[w], minimizer, ressource, process_iteration[w]))  
+                        @async put!(process_channel[w], remotecall_fetch(fun, workers[w], minimizer, ressource, process_iteration[w]))  
                     end 
                     
 
