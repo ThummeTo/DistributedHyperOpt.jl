@@ -36,7 +36,15 @@ function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; 
     pl = 1
     for p in optimization.parameters
 
-        vals = collect(h[pl] for h in optimization.minimizers)
+        valid_inds = []
+        for i in 1:length(optimization.minimums)
+            if !isnan(optimization.minimums[i]) && !isinf(optimization.minimums[i])
+                push!(valid_inds, i)
+            end
+        end
+
+        minimums = optimization.minimums[valid_inds]
+        vals = collect(h[pl] for h in optimization.minimizers[valid_inds])
 
         plot_kwargs = Dict{Symbol, Union{Symbol, Integer}}()
         plot_kwargs[:yaxis] = yaxis
@@ -48,7 +56,7 @@ function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; 
             plot_kwargs[:xrotation] = 90
             vals = collect(length("$(val)") <= label_length ? "$(val)" : "$(val)"[1:label_length] * "..." for val in vals)
         end
-        Plots.scatter!(fig[pl], vals, optimization.minimums; xlabel=p.name, legend=:none, plot_kwargs...)
+        Plots.scatter!(fig[pl], vals, minimums; xlabel=p.name, legend=:none, plot_kwargs...)
         pl += 1
     end
 
