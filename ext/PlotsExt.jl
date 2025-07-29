@@ -33,17 +33,17 @@ function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; 
     titleStr = "Min: $(optimization.minimum) | Index: $(optimization.iteration)\n$(optimization.minimizer)"
     fig = Plots.plot(args...; size=(720,720), layout=numPlots, plot_title=titleStr, plot_titlevspan=0.1, plot_titlefontsize=12, kwargs...)
 
+    valid_inds = Vector{Int32}()
+    for i in 1:length(optimization.minimums)
+        if !isnothing(optimization.minimums[i]) && !isnan(optimization.minimums[i]) && !isinf(optimization.minimums[i])
+            push!(valid_inds, i)
+        end
+    end
+
+    minimums = optimization.minimums[valid_inds]
+
     pl = 1
     for p in optimization.parameters
-
-        valid_inds = []
-        for i in 1:length(optimization.minimums)
-            if !isnan(optimization.minimums[i]) && !isinf(optimization.minimums[i])
-                push!(valid_inds, i)
-            end
-        end
-
-        minimums = optimization.minimums[valid_inds]
         vals = collect(h[pl] for h in optimization.minimizers[valid_inds])
 
         plot_kwargs = Dict{Symbol, Union{Symbol, Integer}}()
@@ -62,12 +62,12 @@ function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; 
 
     # also plot ressources
     if ressources
-        vals = optimization.ressources
+        ress = optimization.ressources[valid_inds]
 
         plot_kwargs = Dict{Symbol, Symbol}()
         plot_kwargs[:xaxis] = :log
         plot_kwargs[:yaxis] = yaxis
-        Plots.scatter!(fig[pl], vals, optimization.minimums; xlabel="Ressource", legend=:none, plot_kwargs...)
+        Plots.scatter!(fig[pl], ress, minimums; xlabel="Ressource", legend=:none, plot_kwargs...)
         pl += 1
     end
 
