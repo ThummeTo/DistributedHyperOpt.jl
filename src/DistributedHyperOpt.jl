@@ -199,12 +199,12 @@ function optimize(optimization::Optimization, fun;
             if !all_terminate
                 if max_iters_reached(sampler, max_iters)
                     terminate = collect(true for i in 1:nw)
-                    @debug "Optimization: Termination requested by iteration count (max_iters=$(max_iters))"
+                    @info "Optimization: Termination requested by iteration count (max_iters=$(max_iters))"
                 end
 
                 if max_duration_reached(start_time, max_duration)
                     terminate = collect(true for i in 1:nw)
-                    @debug "Optimization: Termination requested by running duration (max_duration=$(max_duration)s)"
+                    @info "Optimization: Termination requested by running duration (max_duration=$(max_duration)s)"
                 end
             end
 
@@ -292,7 +292,7 @@ function optimize(optimization::Optimization, fun;
                         end
 
                         if plot
-                            fig = Plots.plot(optimization; ressources=plot_ressources)
+                            fig = Plots.scatter(optimization; ressources=plot_ressources)
                             display(fig)
 
                             if !isnothing(save_plot)
@@ -313,6 +313,8 @@ function optimize(optimization::Optimization, fun;
                 sleep(loop_sleep)
             end
         end
+
+        @info "Optimization: Exiting main loop, optimization finished!"
 
     catch e
         interrupt()

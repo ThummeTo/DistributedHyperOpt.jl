@@ -8,11 +8,72 @@ module PlotsExt
 import DistributedHyperOpt
 import Plots
 
-function Plots.plot(optimization::DistributedHyperOpt.Optimization, args...; ressources::Bool=false, yaxis::Symbol=:log, kwargs...)
+function Plots.plot(optimization::DistributedHyperOpt.Optimization, args...; 
+    ressources::Bool=false, yaxis::Symbol=:log, label_length::Int=12, kwargs...)
 
-    # ToDo
+    numParams = length(optimization.parameters)
+    if ressources
+        numParams += 1
+    end
 
-    return Plots.scatter(optimization, args...; ressources=ressources, yaxis=yaxis, kwargs...)
+    valid_inds = Vector{Int32}()
+    for i in 1:length(optimization.minimums)
+        minimum = optimization.minimums[i]
+        if !isnothing(minimum) && !isnan(minimum) && !isinf(minimum)
+            push!(valid_inds, i)
+        end
+    end
+
+    titleStr = "Min: $(optimization.minimum) | Index: $(optimization.iteration)\n$(optimization.minimizer) | Invalid: $(length(optimization.minimums)-length(valid_inds))"
+    fig = Plots.plot(args...; 
+        size=(720,480), plot_title=titleStr, plot_titlevspan=0.1, 
+        plot_titlefontsize=12, xrotation=90, legend=:none, kwargs...)
+
+    minimums = optimization.minimums[valid_inds]
+    minimizers = optimization.minimizers[valid_inds]
+
+    if length(minimums) <= 0
+        return fig
+    end
+
+    hps = Vector{String}()
+    for p in optimization.parameters
+        push!(hps, p.name)
+    end
+
+    pl = 1
+    for m in minimizers
+        #vals = collect(h[pl] for h in minimizers)
+
+        plot_kwargs = Dict{Symbol, Union{Symbol, Integer}}()
+       
+        # if p.type == :Log
+        #     # if :Log, activate log-axis
+        #     plot_kwargs[:xaxis] = :log
+        # elseif p.type == :Discrete
+        #     # if :Discrete, convert numbers (if any) to strings for equidistant plotting
+        #     vals = collect(length("$(val)") <= label_length ? "$(val)" : "$(val)"[1:label_length] * "..." for val in vals)
+        # end
+
+        Plots.plot!(fig, hps, m; 
+            yaxis=:none,
+            color=:red, linealpha=0.25)
+        pl += 1
+    end
+
+    # also plot ressources
+    if ressources
+        ress = optimization.ressources[valid_inds]
+
+        # plot_kwargs = Dict{Symbol, Symbol}()
+        # plot_kwargs[:xaxis] = :log
+        # plot_kwargs[:yaxis] = yaxis
+        # Plots.scatter!(fig[pl], ress, minimums; 
+        #     xlabel="Ressource", legend=:none, plot_kwargs...)
+        pl += 1
+    end
+
+    return fig
 end
 
 function Plots.scatter(optimization::DistributedHyperOpt.Optimization, args...; 
