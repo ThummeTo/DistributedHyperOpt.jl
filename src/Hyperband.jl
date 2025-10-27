@@ -3,6 +3,8 @@
 # Licensed under the MIT license. See LICENSE file in the project root for details.
 #
 
+import JLD2
+
 mutable struct HyperbandBracket 
     n::Int 
     r::Real
@@ -35,8 +37,11 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
     sampler::AbstractOptimizationAlgorithm
     brackets::Dict{Int, Union{HyperbandBracket, Nothing}}
     ressourceScale
+    auto_save_path::String
 
-    function Hyperband(;R::Int=50, η::Int=3, sampler::AbstractOptimizationAlgorithm=RandomSampler(), ressourceScale::Real=1.0)
+    iteration::Integer # current iteration
+
+    function Hyperband(;R::Int=50, η::Int=3, sampler::AbstractOptimizationAlgorithm=RandomSampler(), ressourceScale::Real=1.0, auto_save_path::String="")
         inst = new()
         inst.R = R
         inst.η = η
@@ -44,11 +49,18 @@ mutable struct Hyperband <: AbstractOptimizationAlgorithm
         inst.s = inst.s_max
         inst.B = (inst.s_max+1)*R
 
-        @info "Hyperband with R=$(inst.R), η=$(inst.η), s_max=$(inst.s_max), B=$(inst.B) will allocate ressources up to $(ressourceScale*R)"
+        N = 0.0
+        for s in 0:inst.s_max
+            N += inst.B/(s+1)
+        end
+        N = ceil(Integer, N)
+        @info "Hyperband with R=$(inst.R), η=$(inst.η), s_max=$(inst.s_max) will allocate ressources up to $(ressourceScale*R) and can be parallized for up to $(inst.s_max+1) worker(s).\nIt will run $(N) individual optimizations with an overall budget of B=$(inst.B)."
 
         inst.sampler = sampler 
         inst.ressourceScale = ressourceScale
         inst.brackets = Dict{Int, Union{HyperbandBracket, Nothing}}()
+        inst.auto_save_path = auto_save_path
+        inst.iteration = 0
 
         return inst
     end
@@ -94,6 +106,14 @@ function worker_has_bracket(sampler::Hyperband, wid::Int)
     return haskey(sampler.brackets, wid) && !isnothing(sampler.brackets[wid])
 end
 
+function save!(sampler::Hyperband, optimization::Optimization, filepath::String=sampler.auto_save_path)
+    JLD2.save(filepath, Dict("sampler" => sampler, "optimization" => optimization))
+end
+
+function load(filepath::String)
+    return JLD2.load(filepath, "sampler"), JLD2.load(filepath, "optimization")
+end
+
 function sample!(sampler::Hyperband, optimization::Optimization, wid::Int)
 
     if all_brackets_started(sampler) && all_brackets_finished(sampler)
@@ -135,7 +155,7 @@ function sample!(sampler::Hyperband, optimization::Optimization, wid::Int)
     return bracket.T[l], r_i*sampler.ressourceScale
 end
 
-function evaluated!(sampler::Hyperband, minimizer, minimum, wid::Int)
+function evaluated!(sampler::Hyperband, optimization::Optimization, minimizer, minimum, wid::Int)
     
     bracket = sampler.brackets[wid]
     bracket.L[bracket.l] = minimum
@@ -159,5 +179,9 @@ function evaluated!(sampler::Hyperband, minimizer, minimum, wid::Int)
             @debug "Hyperband: Bracket s=$(bracket.s) finished by worker #$(wid)"
             sampler.brackets[wid] = nothing
         end
+    end
+
+    if !isempty(sampler.auto_save_path)
+        save!(sampler, optimization, sampler.auto_save_path)
     end
 end
